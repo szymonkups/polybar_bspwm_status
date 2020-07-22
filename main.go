@@ -59,12 +59,8 @@ func outputFunction(monitorIndex int) func() {
 			character := "\ufc64"
 			if desktop.Root != nil {
 				character = "\ufc63"
-			} else {
-				if isDesktopFocused {
-					character = "%{T2}\ufb66%{T-}"
-				}
 			}
-
+			
 			color := "#4C566A"
 
 			if isMonFocused {
@@ -75,7 +71,12 @@ func outputFunction(monitorIndex int) func() {
 				}
 			}
 
-			output += fmt.Sprintf(" %%{F%s}%s%%{F-} ", color, character)
+			if isMonFocused && isDesktopFocused {
+				output += fmt.Sprintf("%%{u%s}%%{+u} %%{F%s}%s%%{F-} %%{-u}%%{u-}", color, color, character)
+			} else {
+				output += fmt.Sprintf(" %%{F%s}%s%%{F-} ", color, character)
+			}
+
 		}
 
 		// Leafs on current desktop info
