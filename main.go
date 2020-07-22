@@ -10,16 +10,23 @@ import (
 	"strconv"
 )
 
+type Client struct {
+	InstanceName string
+	ClassName string
+}
+
 type Node struct {
 	Id          int
 	FirstChild  *Node
 	SecondChild *Node
+	Client Client
 }
 
 type DesktopInfo struct {
 	Name string
 	Id   int
 	Root *Node
+	FocusedNodeId int
 }
 
 type MonitorInfo struct {
@@ -58,6 +65,7 @@ func outputFunction(monitorId string) func() {
 		}
 
 		focusedDesktopId := monitorInfo.FocusedDesktopId
+		var focusedDesktop DesktopInfo
 		isMonFocused, err := isMonitorFocused(monitorId)
 
 		if err != nil {
@@ -65,8 +73,15 @@ func outputFunction(monitorId string) func() {
 		}
 
 		output := ""
+
+		// Desktops info
 		for _, desktop := range monitorInfo.Desktops {
 			isDesktopFocused := desktop.Id == focusedDesktopId
+
+			if isDesktopFocused {
+				focusedDesktop = desktop
+			}
+
 			character := "\ufc64"
 			if desktop.Root != nil {
 				character = "\ufc63"
@@ -88,6 +103,20 @@ func outputFunction(monitorId string) func() {
 
 			output += fmt.Sprintf(" %%{F%s}%s%%{F-} ", color, character)
 		}
+
+		// Leafs on current desktop info
+		leafs := getLeafNodesOnDesktop(focusedDesktopId)
+		output += "  "
+
+		focusedLeafIndex := 0
+		focusedLeafId := fmt.Sprintf("0x%08X", focusedDesktop.FocusedNodeId)
+		for i, leaf := range leafs {
+			if focusedLeafId == leaf {
+				focusedLeafIndex = i +1
+			}
+		}
+
+		output += fmt.Sprintf("%02d/%02d", focusedLeafIndex, len(leafs))
 
 		fmt.Println(output)
 	}
@@ -140,6 +169,16 @@ func isMonitorFocused(monitorId string) (bool, error) {
 	return monitors[0] == monitorId, nil
 }
 
+func getLeafNodesOnDesktop(desktopId int) []string {
+	leafs, err := executeCommand(nil, "bspc", "query", "-N", "-d", fmt.Sprintf("0x%08X", desktopId), "-n", ".leaf")
+
+	if err != nil {
+		return []string{}
+	}
+
+	return leafs
+}
+
 func executeCommand(callback func(), command string, args ...string) ([]string, error) {
 	cmd := exec.Command(command, args...)
 
@@ -147,7 +186,7 @@ func executeCommand(callback func(), command string, args ...string) ([]string, 
 	r, err := cmd.StdoutPipe()
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("cannot create stdout pipe for command %s", command)
 	}
 
 	// Use the same pipe for standard error
@@ -182,7 +221,7 @@ func executeCommand(callback func(), command string, args ...string) ([]string, 
 	err = cmd.Start()
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("cannot start the command %s", command)
 	}
 
 	// Wait for all output to be processed
@@ -192,7 +231,7 @@ func executeCommand(callback func(), command string, args ...string) ([]string, 
 	err = cmd.Wait()
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("command %s exited with error", command)
 	}
 
 	return output, nil
