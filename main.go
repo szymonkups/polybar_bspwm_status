@@ -116,7 +116,13 @@ func outputFunction(monitorId string) func() {
 			}
 		}
 
-		output += fmt.Sprintf("%02d/%02d", focusedLeafIndex, len(leafs))
+		color := "#4C566A"
+
+		if isMonFocused {
+			color = "#D8DEE9"
+		}
+		
+		output += fmt.Sprintf("%%{F%s}%02d/%02d%%{F-}", color, focusedLeafIndex, len(leafs))
 
 		fmt.Println(output)
 	}
