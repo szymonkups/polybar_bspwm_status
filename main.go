@@ -12,28 +12,31 @@ import (
 
 
 func main() {
-	monitor, err := strconv.Atoi(os.Args[1])
+	logger := log.New(os.Stderr, "", 0)
 
-	if err != nil {
-		log.Fatal(err)
+	if len(os.Args) < 2 {
+		logger.Println("Please provide a correct monitor index")
+		logger.Println()
+		logger.Println("polybar_bspwm_status <monitor_index>")
+		os.Exit(1)
 	}
 
-	monitorId, err := getMonitorId(monitor)
+	monitorIndex, err := strconv.Atoi(os.Args[1])
 
 	if err != nil {
-		log.Fatal(fmt.Errorf("cannot find monitor %d", monitor))
+		logger.Fatal(err)
 	}
 
-	_, err = utils.ExecuteCommand(outputFunction(monitorId), "bspc", "subscribe")
+	_, err = utils.ExecuteCommand(outputFunction(monitorIndex), "bspc", "subscribe")
 
 	if err != nil {
-		log.Fatal(err)
+		logger.Fatal(err)
 	}
 }
 
-func outputFunction(monitorId string) func() {
+func outputFunction(monitorIndex int) func() {
 	return func() {
-		monitorInfo, err := getMonitorInfo(monitorId)
+		monitorInfo, err := getMonitorInfo(monitorIndex)
 
 		if err != nil {
 			log.Fatal(err)
@@ -41,11 +44,7 @@ func outputFunction(monitorId string) func() {
 
 		focusedDesktopId := monitorInfo.FocusedDesktopId
 		var focusedDesktop types.DesktopInfo
-		isMonFocused, err := isMonitorFocused(monitorId)
-
-		if err != nil {
-			log.Fatal(err)
-		}
+		isMonFocused := isMonitorFocused(monitorInfo.Id)
 
 		output := ""
 
@@ -103,11 +102,21 @@ func outputFunction(monitorId string) func() {
 	}
 }
 
-func getMonitorInfo(monitorId string) (*types.MonitorInfo, error) {
-	output, err := utils.ExecuteCommand(nil, "bspc", "query", "-T", "-m", monitorId)
+
+func getMonitorInfo(monitorIndex int) (*types.MonitorInfo, error) {
+	args := []string{"query", "-T", "-m"}
+
+	if monitorIndex > 0 {
+		args = append(args, "-m", fmt.Sprintf("^%d", monitorIndex))
+	} else {
+		args = append(args, "-m", "focused")
+	}
+
+	output, err := utils.ExecuteCommand(nil, "bspc", args...)
+
 
 	if err != nil {
-		log.Fatal(fmt.Errorf("cannot get info of monitor %s", monitorId))
+		log.Fatal(fmt.Errorf("cannot get info of monitor %d", monitorIndex))
 	}
 
 	monitorData := []byte(output[0])
@@ -122,32 +131,15 @@ func getMonitorInfo(monitorId string) (*types.MonitorInfo, error) {
 	return &i, nil
 }
 
-func getMonitorId(monitor int) (string, error) {
-	monitors, err := utils.ExecuteCommand(nil, "bspc", "query", "-M")
+
+func isMonitorFocused(monitorId int) bool {
+	focusedMonitorInfo, err := getMonitorInfo(-1)
 
 	if err != nil {
-		return "", fmt.Errorf("could not execute bspc query -M")
+		log.Fatal(err)
 	}
 
-	if monitor > len(monitors) {
-		return "", fmt.Errorf("monitor index not found: %d", monitor)
-	}
-
-	return monitors[monitor-1], nil
-}
-
-func isMonitorFocused(monitorId string) (bool, error) {
-	monitors, err := utils.ExecuteCommand(nil, "bspc", "query", "-M", "-m", "focused")
-
-	if err != nil {
-		return false, fmt.Errorf("could not execute bspc query -M -m focused")
-	}
-
-	if len(monitors) < 1 {
-		return false, nil
-	}
-
-	return monitors[0] == monitorId, nil
+	return focusedMonitorInfo.Id == monitorId
 }
 
 func getLeafNodesOnDesktop(desktopId int) []string {
