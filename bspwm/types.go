@@ -1,4 +1,4 @@
-package types
+package bspwm
 
 type Client struct {
 	InstanceName string
