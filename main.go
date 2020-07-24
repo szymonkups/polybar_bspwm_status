@@ -77,24 +77,6 @@ func outputFunction(config *utils.Config) func() {
 					output += config.Labels.OccupiedDesktop.Inactive
 				}
 			}
-
-
-			//color := "#4C566A"
-			//
-			//if isMonFocused {
-			//	color = "#D8DEE9"
-			//
-			//	if isDesktopFocused {
-			//		color = "#EBCB8B"
-			//	}
-			//}
-			//
-			//if isMonFocused && isDesktopFocused {
-			//	output += fmt.Sprintf("%%{u%s}%%{+u} %%{F%s}%s%%{F-} %%{-u}%%{u-}", color, color, character)
-			//} else {
-			//	output += fmt.Sprintf(" %%{F%s}%s%%{F-} ", color, character)
-			//}
-
 		}
 
 		// Leafs on current desktop info
@@ -104,7 +86,7 @@ func outputFunction(config *utils.Config) func() {
 		focusedLeafIndex := 0
 		for i, leaf := range leafs {
 			if focusedDesktop.FocusedNodeId == leaf {
-				focusedLeafIndex = i +1
+				focusedLeafIndex = i + 1
 			}
 		}
 
