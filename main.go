@@ -1,40 +1,40 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"github.com/szymonkups/polybar_bspwm_status/bspwm"
 	"github.com/szymonkups/polybar_bspwm_status/utils"
 	"log"
 	"os"
-	"strconv"
 )
+
 
 
 func main() {
 	logger := log.New(os.Stderr, "", 0)
-	monitorIndex := 1
 
-	if len(os.Args) > 1 {
-		var err error
-		monitorIndex, err = strconv.Atoi(os.Args[1])
+	config, err := utils.LoadConfig()
 
-		if err != nil {
-			logger.Fatalf("Cannot parse monitor_index: %s", os.Args[1])
-		}
+	if err != nil {
+		logger.Fatal("Cannot load config.json", err)
 	}
 
+	flag.IntVar(&config.MonitorIndex, "m", 1, "monitor index")
+	flag.Parse()
 
-
-	_, err := utils.ExecuteCommand(outputFunction(monitorIndex), "bspc", "subscribe")
+	_, err = utils.ExecuteCommand(outputFunction(config), "bspc", "subscribe")
 
 	if err != nil {
 		logger.Fatal("Cannot execute \"bspc subscribe\"")
 	}
 }
 
-func outputFunction(monitorIndex int) func() {
+
+
+func outputFunction(config *utils.Config) func() {
 	return func() {
-		monitorInfo, err := bspwm.GetMonitorInfo(monitorIndex)
+		monitorInfo, err := bspwm.GetMonitorInfo(config.MonitorIndex)
 
 		if err != nil {
 			log.Fatal(err)
@@ -54,26 +54,46 @@ func outputFunction(monitorIndex int) func() {
 				focusedDesktop = desktop
 			}
 
-			character := "\ufc64"
-			if desktop.Root != nil {
-				character = "\ufc63"
-			}
-			
-			color := "#4C566A"
+			isDesktopEmpty := desktop.Root == nil
 
-			if isMonFocused {
-				color = "#D8DEE9"
-
-				if isDesktopFocused {
-					color = "#EBCB8B"
+			if isDesktopEmpty {
+				if isMonFocused {
+					if isDesktopFocused {
+						output += config.Labels.EmptyDesktop.Focused
+					} else {
+						output += config.Labels.EmptyDesktop.Blurred
+					}
+				} else {
+					output += config.Labels.EmptyDesktop.Inactive
+				}
+			} else {
+				if isMonFocused {
+					if isDesktopFocused {
+						output += config.Labels.OccupiedDesktop.Focused
+					} else {
+						output += config.Labels.OccupiedDesktop.Blurred
+					}
+				} else {
+					output += config.Labels.OccupiedDesktop.Inactive
 				}
 			}
 
-			if isMonFocused && isDesktopFocused {
-				output += fmt.Sprintf("%%{u%s}%%{+u} %%{F%s}%s%%{F-} %%{-u}%%{u-}", color, color, character)
-			} else {
-				output += fmt.Sprintf(" %%{F%s}%s%%{F-} ", color, character)
-			}
+
+			//color := "#4C566A"
+			//
+			//if isMonFocused {
+			//	color = "#D8DEE9"
+			//
+			//	if isDesktopFocused {
+			//		color = "#EBCB8B"
+			//	}
+			//}
+			//
+			//if isMonFocused && isDesktopFocused {
+			//	output += fmt.Sprintf("%%{u%s}%%{+u} %%{F%s}%s%%{F-} %%{-u}%%{u-}", color, color, character)
+			//} else {
+			//	output += fmt.Sprintf(" %%{F%s}%s%%{F-} ", color, character)
+			//}
 
 		}
 

@@ -1,0 +1,14 @@
+{
+  "labels": {
+    "emptyDesktop": {
+      "focused": "%{u#EBCB8B}%{+u} %{F#EBCB8B}\ufc64%{F-} %{-u}%{u-}",
+      "blurred": " \ufc64 ",
+      "inactive": " %{F#4C566A}\ufc64%{F-} "
+    },
+    "occupiedDesktop": {
+      "focused": "%{u#EBCB8B}%{+u} %{F#EBCB8B}\ufc63%{F-} %{-u}%{u-}",
+      "blurred": " \ufc63 ",
+      "inactive": " %{F#4C566A}\ufc63%{F-} "
+    }
+  }
+}
